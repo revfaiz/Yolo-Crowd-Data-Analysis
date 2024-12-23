@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+service YOLOService {
+  rpc Detect (stream VideoFrame) returns (stream DetectedFrame);
+}
+
+message VideoFrame {
+  bytes frame = 1;              // Encoded video frame (e.g., JPEG)
+  repeated int32 annotation = 2; // Region of interest [x_min, y_min, x_max, y_max]
+}
+
+message DetectedFrame {
+  bytes frame = 1;              // Processed frame with detection
+}
