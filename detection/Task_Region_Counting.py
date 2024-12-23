@@ -113,7 +113,7 @@ def annotate_detections(frame, detections, polygon_vertices, labels):
 
     print("Detection completed, frame annotated.")  
     return frame
-def process_detections_user_marked(video_path="D:\Yolo Implementation\gRPC\Sample_Video1.mp4",model_path="yolov8m.pt"):
+def process_detections_user_marked(video_path="D:\Yolo Implementation\gRPC\Sample_Video.mp4",model_path="yolov8m.pt"):
        # with polygons:
     print("Going to get the frame")
     frame = generate_frames(video_path)
@@ -158,54 +158,58 @@ def process_detections_user_marked(video_path="D:\Yolo Implementation\gRPC\Sampl
     sv.plot_image(frame,(16,16))
     return frame, detections
 
-annotated_frame, detections = process_detections_user_marked(model_path="yolov8m.pt",video_path="Sample_Video1.mp4")
+# annotated_frame, detections = process_detections_user_marked(model_path="yolov8m.pt",video_path="Sample_Video1.mp4")
 
-# Get polygon from user input
-# print("skipping inside the function")
-# frame= generate_frames('Sample_Video1.mp4')
-# print('Asking user to draw polygon')
-# polygons = draw_polygon(frame)
-# polygons = np.array(polygons).reshape((-1, 1, 2)).astype(np.int32)
-# print('polygons are',polygons)
-# print('Got the polygon')
 
-# print('Processing the video')
-# sv.process_video(source_path='Sample_Video1.mp4', target_path="result.mp4", callback=process_detections_user_marked)
-# print('Video processed')
 
-# output_path = "output.mp4"
-# # Ensure proper VideoWriter initialization
-# cap = cv2.VideoCapture('Sample_Video1.mp4')
-# fps = int(cap.get(cv2.CAP_PROP_FPS))
-# width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-# height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+def main(video_path, model_path, output_path):
+    cap = cv2.VideoCapture(video_path)
+    ret, first_frame = cap.read()
+    if not ret:
+        print("Failed to read video")
+        return
 
-# fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # or 'XVID'
-# out = cv2.VideoWriter(
-#     output_path,
-#     fourcc,
-#     fps,
-#     (width, height)
-# )
+    # User draws polygon on the first frame
+    polygon_vertices = draw_polygon(first_frame)
 
-# try:
-#     while cap.isOpened():
-#         ret, frame = cap.read()
-#         if not ret:
-#             break
+    # Get video properties for saving
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
+    # Initialize VideoWriter
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
+
+    try:
+        while cap.isOpened():
+            ret, frame = cap.read()
+            if not ret:
+                break
+
+            # Create mask and perform detection
+            mask, roi = get_polygon_mask(frame, polygon_vertices)
+            results, detections = detect_objects_in_roi(roi, model_path)
+            detections = detections[detections.class_id == 0]  # Filter for 'person' class
+            print(f"Number of detections: {len(detections)}")
             
-#         # Process frame
-#         print("---------------------------------Processing the frame---------------------------------")
-#         processed_frame = process_detections_user_marked(model_path="yolov8m.pt")
-#         print("---------------------------------Frame processed---------------------------------")
-#         if processed_frame is not None:
-#             print("---------------------------------Writing the frame---------------------------------")
-#             out.write(processed_frame)
-#             print("---------------------------------Frame written---------------------------------")
-# finally:
-#     print("---------------------------------Releasing the video writer and capture---------------------------------")
-#     # Always close the video writer and capture
-#     cap.release()
-#     out.release()
-#     cv2.destroyAllWindows()
-#     print("---------------------------------Video writer and capture released---------------------------------")
+            labels = [
+                f"{results.names[class_id]}: {confidence:.2f}"
+                for class_id, confidence in zip(detections.class_id, detections.confidence)
+            ]
+
+            # Annotate frame with detections
+            annotated_frame = annotate_detections(frame, detections, polygon_vertices, labels)
+            
+            # Write the frame instead of showing it
+            out.write(annotated_frame)
+
+    finally:
+        cap.release()
+        out.release()
+
+
+if __name__ == "__main__":
+    print("Starting the main function")
+    main("Sample_Video2.mp4","yolov8m.pt","Brownmunday.mp4")
+
