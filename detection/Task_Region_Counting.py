@@ -113,7 +113,7 @@ def annotate_detections(frame, detections, polygon_vertices, labels):
 
     print("Detection completed, frame annotated.")  
     return frame
-def process_detections_user_marked(video_path="D:\Yolo Implementation\gRPC\Sample_Video.mp4",model_path="yolov8m.pt"):
+def process_detections_user_marked(video_path,model_path):
        # with polygons:
     print("Going to get the frame")
     frame = generate_frames(video_path)
@@ -129,7 +129,7 @@ def process_detections_user_marked(video_path="D:\Yolo Implementation\gRPC\Sampl
            print("Reshaped the polygon")
     polygons_array = polygons_array.astype(np.int32)
     print("Converted the polygon to integer type")
-# Perform object detection      
+    # Perform object detection      
     mask, roi = get_polygon_mask(frame, polygons_array)
     print("Starting the detection")
     results,detections = detect_objects_in_roi(roi, model_path)  
@@ -190,6 +190,7 @@ def main(video_path, model_path, output_path):
             # Create mask and perform detection
             mask, roi = get_polygon_mask(frame, polygon_vertices)
             results, detections = detect_objects_in_roi(roi, model_path)
+            print('Back to main')
             detections = detections[detections.class_id == 0]  # Filter for 'person' class
             print(f"Number of detections: {len(detections)}")
             
@@ -202,6 +203,7 @@ def main(video_path, model_path, output_path):
             annotated_frame = annotate_detections(frame, detections, polygon_vertices, labels)
             
             # Write the frame instead of showing it
+            
             out.write(annotated_frame)
 
     finally:
